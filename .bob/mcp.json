@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "lf-pulseiq": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "uvx",
+        "mcp-proxy",
+        "--transport",
+        "streamablehttp",
+        "--headers",
+        "x-api-key",
+        "sk-xAQt0Bxe2Roq5jlf06v9Wh3wHB6cS6i7xrEIzhBVeq8",
+        "https://langflow.servicesessentials.ibm.com/api/v1/mcp/project/71844c1f-6513-45ef-b289-571bbab913fd/streamable"
+      ]
+    }
+  }
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Langflow Embedded Chat</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Make the chat widget fill most of the screen */
+    langflow-chat {
+      --chat-window-height: 85vh;
+      --chat-window-width: 800px;
+    }
+
+    /* Override the shadow DOM styles for the chat window */
+    langflow-chat::part(chat-window) {
+      width: 800px !important;
+      height: 85vh !important;
+      max-height: 85vh !important;
+    }
+
+    /* Target the internal iframe/container langflow injects */
+    langflow-chat > * {
+      width: 800px !important;
+      height: 85vh !important;
+    }
+  </style>
+</head>
+<body>
+  <script
+    src="https://cdn.jsdelivr.net/gh/logspace-ai/langflow-embedded-chat@v1.0.7/dist/build/static/js/bundle.min.js">
+  </script>
+
+  <!--
+    OPTION A: Using the local proxy (Fix 2)
+    Change host_url to point to your proxy instead of Langflow directly.
+    The proxy adds CORS headers and forwards to the real server.
+  -->
+  <langflow-chat
+      window_title="PulseIQ"
+      flow_id="ce0bea51-8829-4115-990b-6cbd8bb51ca3"
+      host_url="http://localhost:3000/langflow"
+     api_key="sk-F1sRs8TrNwAkWGR-DUHBs4xdFEpeRSkCO7ntvvroHhU">
+  </langflow-chat>
+
+  <!--
+    OPTION B: If your Langflow admin has fixed CORS server-side (Fix 1),
+    just use the original host_url directly — no proxy needed:
+
+  <langflow-chat
+    window_title="AgenticAppCustomAPI"
+    flow_id="6d84eb7a-05f2-4667-99af-f21b50d6389c"
+    host_url="https://langflow.servicesessentials.ibm.com"
+    api_key="sk-xg2e6pbA4">
+  </langflow-chat>
+  -->
+</body>
+</html>

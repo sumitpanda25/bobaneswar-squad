@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { motion } from "framer-motion"
 import { TrendingUp, Package, DollarSign, Star, Zap, AlertTriangle } from "lucide-react"
 import { DashboardLayout } from "./components/dashboard/DashboardLayout"
@@ -12,22 +13,74 @@ import { SentimentAnalysis } from "./components/dashboard/SentimentAnalysis"
 import { AIRecommendations } from "./components/dashboard/AIRecommendations"
 import { useKPIMetrics, useFilteredProducts, useDashboardStore } from "./store/dashboardStore"
 import { formatCurrency } from "./utils/formatters"
+import { useMemo } from "react"
 
 export default function Home() {
   // Use dashboard store for reactive data
   const metrics = useKPIMetrics()
   const filteredProducts = useFilteredProducts()
-  const { isLoading, dateRange } = useDashboardStore()
+  const { isLoading, dateRange, refreshData, products } = useDashboardStore()
+  
+  // Fetch real-time data on mount
+  useEffect(() => {
+    refreshData()
+  }, [refreshData])
   
   const monthlyGrowth = 24.5
+  
+  // Calculate Quick Stats from real data
+  const quickStats = useMemo(() => {
+    if (products.length === 0) {
+      return {
+        topCategory: { name: 'Loading...', percentage: 0, revenue: 0, growth: 0 },
+        bestRated: { name: 'Loading...', rating: 0, growth: 0, revenue: 0 },
+        needsAttention: { name: 'Loading...', growth: 0, risk: 'Unknown' }
+      }
+    }
+    
+    // Calculate category performance
+    const categoryStats = products.reduce((acc, p) => {
+      if (!acc[p.category]) {
+        acc[p.category] = { revenue: 0, count: 0, growth: 0 }
+      }
+      acc[p.category].revenue += p.revenue
+      acc[p.category].count += 1
+      acc[p.category].growth += p.growth
+      return acc
+    }, {} as Record<string, { revenue: number; count: number; growth: number }>)
+    
+    const totalRevenue = products.reduce((sum, p) => sum + p.revenue, 0)
+    const topCategory = Object.entries(categoryStats)
+      .map(([name, stats]) => ({
+        name,
+        percentage: (stats.revenue / totalRevenue * 100).toFixed(0),
+        revenue: stats.revenue,
+        growth: (stats.growth / stats.count).toFixed(1)
+      }))
+      .sort((a, b) => b.revenue - a.revenue)[0]
+    
+    // Find best rated product
+    const bestRated = products
+      .sort((a, b) => b.rating - a.rating)[0]
+    
+    // Find product needing attention (lowest growth)
+    const needsAttention = products
+      .sort((a, b) => a.growth - b.growth)[0]
+    
+    return {
+      topCategory: topCategory || { name: 'N/A', percentage: '0', revenue: 0, growth: '0' },
+      bestRated: bestRated || { name: 'N/A', rating: 0, growth: 0, revenue: 0 },
+      needsAttention: needsAttention || { name: 'N/A', growth: 0, riskLevel: 'Unknown' }
+    }
+  }, [products])
 
   return (
     <DashboardLayout>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         {/* Page Title */}
-        <div className="mb-8">
+        <div className="mb-6">
           <motion.h1
-            className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+            className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -35,7 +88,7 @@ export default function Home() {
             Product Overview Dashboard
           </motion.h1>
           <motion.p
-            className="mt-2 text-slate-400"
+            className="mt-1 text-sm text-slate-400"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -136,13 +189,13 @@ export default function Home() {
         </div>
 
         {/* Charts Row 1 */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <RevenueByCategory />
           <MonthlySalesTrend />
         </div>
 
         {/* Charts Row 2 */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <ProductDistribution />
           <ProductGrowthTrend />
         </div>
@@ -152,8 +205,9 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
+          className="mt-2"
         >
-          <h2 className="mb-4 text-2xl font-bold text-white">Product Intelligence</h2>
+          <h2 className="mb-3 text-xl font-bold text-white">Product Intelligence</h2>
           <ProductTable />
         </motion.div>
 
@@ -162,39 +216,52 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
+          className="mt-2"
         >
-          <h2 className="mb-4 text-2xl font-bold text-white">Sentiment & Customer Insights</h2>
+          <h2 className="mb-3 text-xl font-bold text-white">Sentiment & Customer Insights</h2>
           <SentimentAnalysis />
         </motion.div>
 
         {/* AI Insights & Recommendations */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2 mt-2">
           <AIInsightsPanel />
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7 }}
-            className="rounded-xl border border-slate-700/50 bg-slate-900/50 p-6 backdrop-blur-sm"
+            className="rounded-xl border border-slate-700/50 bg-slate-900/50 p-5 backdrop-blur-sm"
           >
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <Zap className="h-5 w-5 text-yellow-400" />
-              <h3 className="text-lg font-semibold text-white">Quick Stats</h3>
+              <h3 className="text-base font-semibold text-white">Quick Stats</h3>
             </div>
-            <div className="space-y-4">
-              <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
-                <p className="text-sm text-blue-300">Top Performing Category</p>
-                <p className="text-2xl font-bold text-blue-400">Serums (28%)</p>
-                <p className="text-xs text-blue-200 mt-2">Revenue: $125,000 | Growth: +24.5%</p>
+            <div className="space-y-3">
+              <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+                <p className="text-xs text-blue-300">Top Performing Category</p>
+                <p className="text-xl font-bold text-blue-400">
+                  {quickStats.topCategory.name} ({quickStats.topCategory.percentage}%)
+                </p>
+                <p className="text-xs text-blue-200 mt-1">
+                  Revenue: ${(quickStats.topCategory.revenue / 1000).toFixed(0)}K | Growth: +{quickStats.topCategory.growth}%
+                </p>
               </div>
-              <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
-                <p className="text-sm text-green-300">Best Rated Product</p>
-                <p className="text-2xl font-bold text-green-400">Face Mask Luxury (4.9 ⭐)</p>
-                <p className="text-xs text-green-200 mt-2">Growth: +32.1% | Revenue: $87,000</p>
+              <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3">
+                <p className="text-xs text-green-300">Best Rated Product</p>
+                <p className="text-xl font-bold text-green-400">
+                  {quickStats.bestRated.name} ({quickStats.bestRated.rating} ⭐)
+                </p>
+                <p className="text-xs text-green-200 mt-1">
+                  Growth: {quickStats.bestRated.growth > 0 ? '+' : ''}{quickStats.bestRated.growth}% | Revenue: ${(quickStats.bestRated.revenue / 1000).toFixed(0)}K
+                </p>
               </div>
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
-                <p className="text-sm text-red-300">Needs Attention</p>
-                <p className="text-2xl font-bold text-red-400">Sunscreen (-15.2%)</p>
-                <p className="text-xs text-red-200 mt-2">High risk | Seasonal decline expected</p>
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                <p className="text-xs text-red-300">Needs Attention</p>
+                <p className="text-xl font-bold text-red-400">
+                  {quickStats.needsAttention.name} ({quickStats.needsAttention.growth > 0 ? '+' : ''}{quickStats.needsAttention.growth}%)
+                </p>
+                <p className="text-xs text-red-200 mt-1">
+                  {'riskLevel' in quickStats.needsAttention ? quickStats.needsAttention.riskLevel : 'Unknown'} risk | {quickStats.needsAttention.growth < 0 ? 'Declining' : 'Needs monitoring'}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -205,8 +272,9 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
+          className="mt-2"
         >
-          <h2 className="mb-4 text-2xl font-bold text-white">AI-Powered Recommendations</h2>
+          <h2 className="mb-3 text-xl font-bold text-white">AI-Powered Recommendations</h2>
           <AIRecommendations />
         </motion.div>
       </motion.div>

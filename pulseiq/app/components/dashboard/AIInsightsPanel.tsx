@@ -2,10 +2,57 @@
 
 import { motion } from "framer-motion"
 import { TrendingUp, Lightbulb, AlertCircle } from "lucide-react"
-import { aiInsights } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 import { cn } from "@/app/utils/cn"
+import { useMemo } from "react"
 
 export function AIInsightsPanel() {
+  const products = useDashboardStore((state) => state.products)
+  const competitors = useDashboardStore((state) => state.competitors)
+  
+  // Generate AI insights from real data
+  const aiInsights = useMemo(() => {
+    const insights = []
+    
+    // Insight 1: High revenue products
+    const highRevenueProducts = products.filter(p => p.revenue > 800000)
+    if (highRevenueProducts.length > 0) {
+      insights.push({
+        id: 1,
+        title: "High Revenue Performers",
+        description: `${highRevenueProducts.map(p => p.name).join(', ')} are generating exceptional revenue. Consider expanding these product lines.`,
+        impact: "High",
+        timestamp: new Date().toISOString()
+      })
+    }
+    
+    // Insight 2: Competitor threat analysis
+    const highThreatCompetitors = competitors.filter(c => c.threatLevel === 'high')
+    if (highThreatCompetitors.length > 0) {
+      insights.push({
+        id: 2,
+        title: "Competitive Threats Detected",
+        description: `${highThreatCompetitors.map(c => c.name).join(', ')} pose high competitive threats. Monitor pricing and features closely.`,
+        impact: "High",
+        timestamp: new Date().toISOString()
+      })
+    }
+    
+    // Insight 3: Growth opportunities
+    const highGrowthProducts = products.filter(p => p.growth > 15)
+    if (highGrowthProducts.length > 0) {
+      insights.push({
+        id: 3,
+        title: "Growth Opportunities",
+        description: `Products showing strong growth momentum: ${highGrowthProducts.map(p => p.name).join(', ')}. Invest in marketing for these items.`,
+        impact: "Medium",
+        timestamp: new Date().toISOString()
+      })
+    }
+    
+    return insights
+  }, [products, competitors])
+  
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}

@@ -5,9 +5,10 @@
 
 import { productData } from '@/app/data/mockData'
 
-// Use Langflow proxy for chatbot (running on port 3000)
+// Use Langflow MCP proxy for chatbot (running on port 3000)
 const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:3000/langflow';
 const CHATBOT_API_KEY = process.env.NEXT_PUBLIC_CHATBOT_API_KEY || 'sk-F1sRs8TrNwAkWGR-DUHBs4xdFEpeRSkCO7ntvvroHhU';
+const PROJECT_ID = process.env.NEXT_PUBLIC_PROJECT_ID || '71844c1f-6513-45ef-b289-571bbab913fd';
 const FLOW_ID = process.env.NEXT_PUBLIC_FLOW_ID || 'ce0bea51-8829-4115-990b-6cbd8bb51ca3';
 
 export interface ChatMessage {
@@ -39,12 +40,14 @@ export interface ChatSession {
 class ChatbotService {
   private apiUrl: string;
   private apiKey: string;
+  private projectId: string;
   private flowId: string;
   private sessionId: string;
 
   constructor() {
     this.apiUrl = CHATBOT_API_URL;
     this.apiKey = CHATBOT_API_KEY;
+    this.projectId = PROJECT_ID;
     this.flowId = FLOW_ID;
     this.sessionId = this.generateSessionId();
   }
@@ -61,8 +64,13 @@ class ChatbotService {
    */
   async sendMessage(message: string, context?: Record<string, any>): Promise<ChatbotResponse> {
     try {
-      // Call Langflow API through proxy
-      const response = await fetch(`${this.apiUrl}/api/v1/run/${this.flowId}`, {
+      // Use the same endpoint as dashboard API (works with 200 OK)
+      const endpoint = `${this.apiUrl}/api/v1/run/${this.flowId}`;
+      
+      console.log('[Chatbot] Calling endpoint:', endpoint);
+      console.log('[Chatbot] Message:', message);
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,22 +81,27 @@ class ChatbotService {
           output_type: 'chat',
           input_type: 'chat',
           tweaks: {
-            'ChatInput-wTWqS': {},
-            'Prompt-Rl5Yz': {},
-            'ChatOutput-Ks5Ub': {},
-            'Agent-Ks5Ub': {},
-          },
+            "ChatInput-Hhcra": {},
+            "Prompt-zXzHd": {},
+            "ChatOutput-h6RLU": {},
+            "OpenAIModel-Ry5Wd": {}
+          }
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Chatbot] API error:', response.status, errorText);
         throw new Error(`Langflow API error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('[Chatbot] Response data:', data);
       
-      // Extract message from Langflow response
+      // Extract message from Langflow response (same structure as dashboard API)
       let aiMessage = 'No response';
+      
+      // Try different response structures
       if (data.outputs && data.outputs.length > 0) {
         const output = data.outputs[0];
         if (output.outputs && output.outputs.length > 0) {
@@ -97,12 +110,18 @@ class ChatbotService {
             aiMessage = messageOutput.results.message.text || messageOutput.results.message;
           }
         }
+      } else if (data.message) {
+        aiMessage = data.message;
+      } else if (data.text) {
+        aiMessage = data.text;
+      } else if (data.result) {
+        aiMessage = data.result;
       }
 
       return {
         message: aiMessage,
         confidence: 0.95,
-        sources: ['IBM Agent Studio', 'PulseIQ Analytics'],
+        sources: ['IBM Langflow', 'PulseIQ Analytics'],
         suggestions: this.generateSuggestions(message),
       };
     } catch (error) {

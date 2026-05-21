@@ -1,11 +1,57 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { aiRecommendations } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 import { cn } from "@/app/utils/cn"
 import { Zap, TrendingUp, AlertCircle } from "lucide-react"
+import { useMemo } from "react"
 
 export function AIRecommendations() {
+  const products = useDashboardStore((state) => state.products)
+  const competitors = useDashboardStore((state) => state.competitors)
+  
+  // Generate AI recommendations from real data
+  const aiRecommendations = useMemo(() => {
+    const recommendations = []
+    
+    // Recommendation 1: Pricing strategy
+    const avgCompetitorPrice = competitors.length > 0
+      ? competitors.reduce((sum, c) => sum + c.avgPrice, 0) / competitors.length
+      : 0
+    const avgOurPrice = products.length > 0
+      ? products.reduce((sum, p) => sum + p.price, 0) / products.length
+      : 0
+    
+    if (avgOurPrice > avgCompetitorPrice * 1.1) {
+      recommendations.push({
+        id: 1,
+        title: "Optimize Pricing Strategy",
+        description: `Our average price (₹${avgOurPrice.toFixed(0)}) is higher than competitors. Consider competitive pricing.`,
+        priority: "High",
+        impact: "Revenue Growth"
+      })
+    }
+    
+    // Recommendation 2: Product expansion
+    const topCategory = products.reduce((acc, p) => {
+      acc[p.category] = (acc[p.category] || 0) + p.revenue
+      return acc
+    }, {} as Record<string, number>)
+    const bestCategory = Object.entries(topCategory).sort((a, b) => b[1] - a[1])[0]
+    
+    if (bestCategory) {
+      recommendations.push({
+        id: 2,
+        title: "Expand Best Category",
+        description: `${bestCategory[0]} generates top revenue. Invest in expanding this line.`,
+        priority: "High",
+        impact: "Market Share"
+      })
+    }
+    
+    return recommendations
+  }, [products, competitors])
+  
   const priorityConfig = {
     High: { bg: "bg-red-500/20", border: "border-red-500/30", text: "text-red-400", icon: AlertCircle },
     Medium: { bg: "bg-yellow-500/20", border: "border-yellow-500/30", text: "text-yellow-400", icon: TrendingUp },

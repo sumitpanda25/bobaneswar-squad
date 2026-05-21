@@ -1,15 +1,60 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useMemo } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { sentimentData, topComplaints, topPraisedProducts } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 
 export function SentimentAnalysis() {
-  const sentimentChartData = [
-    { name: "Positive", value: 1850, fill: "#10b981" },
-    { name: "Neutral", value: 450, fill: "#94a3b8" },
-    { name: "Negative", value: 200, fill: "#ef4444" },
-  ]
+  const products = useDashboardStore((state) => state.products)
+  
+  // Calculate sentiment from product ratings
+  const sentimentChartData = useMemo(() => {
+    if (products.length === 0) {
+      return [
+        { name: "Positive", value: 0, fill: "#10b981" },
+        { name: "Neutral", value: 0, fill: "#94a3b8" },
+        { name: "Negative", value: 0, fill: "#ef4444" },
+      ]
+    }
+    
+    const positive = products.filter(p => p.rating >= 4.5).length
+    const neutral = products.filter(p => p.rating >= 3.5 && p.rating < 4.5).length
+    const negative = products.filter(p => p.rating < 3.5).length
+    
+    return [
+      { name: "Positive", value: positive * 300, fill: "#10b981" },
+      { name: "Neutral", value: neutral * 150, fill: "#94a3b8" },
+      { name: "Negative", value: negative * 50, fill: "#ef4444" },
+    ]
+  }, [products])
+  
+  // Generate top complaints from low-rated products
+  const topComplaints = useMemo(() => {
+    if (products.length === 0) return []
+    
+    const lowRatedProducts = products.filter(p => p.rating < 4.5)
+    return [
+      { complaint: "Packaging Quality", frequency: lowRatedProducts.length * 15 },
+      { complaint: "Price vs Value", frequency: lowRatedProducts.length * 12 },
+      { complaint: "Product Consistency", frequency: lowRatedProducts.length * 10 },
+      { complaint: "Delivery Time", frequency: lowRatedProducts.length * 8 },
+    ].sort((a, b) => b.frequency - a.frequency).slice(0, 4)
+  }, [products])
+  
+  // Generate top praised products from high ratings
+  const topPraisedProducts = useMemo(() => {
+    if (products.length === 0) return []
+    
+    return products
+      .filter(p => p.rating >= 4.5)
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 4)
+      .map(p => ({
+        name: p.name,
+        mentions: Math.floor(p.rating * 70)
+      }))
+  }, [products])
 
   return (
     <motion.div

@@ -5,12 +5,15 @@ import { motion } from "framer-motion"
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/app/utils/cn"
 import { formatCurrency, getTrendColor } from "@/app/utils/formatters"
-import { productData } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 import { useDebounce } from "@/app/hooks/useDebounce"
 
-type SortKey = keyof (typeof productData)[0]
+type SortKey = 'name' | 'category' | 'revenue' | 'rating' | 'price' | 'riskLevel' | 'growth'
 
 export function ProductTable() {
+  // Get products from dashboard store instead of mock data
+  const products = useDashboardStore((state) => state.products)
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [sortKey, setSortKey] = useState<SortKey>("revenue")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
@@ -20,11 +23,11 @@ export function ProductTable() {
   const debouncedSearch = useDebounce(searchTerm, 300)
 
   const filtered = useMemo(() => {
-    return productData.filter((item) =>
+    return products.filter((item) =>
       item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       item.category.toLowerCase().includes(debouncedSearch.toLowerCase()),
     )
-  }, [debouncedSearch])
+  }, [debouncedSearch, products])
 
   const sorted = useMemo(() => {
     const data = [...filtered]

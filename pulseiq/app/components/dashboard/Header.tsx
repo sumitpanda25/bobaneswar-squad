@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, Bell, Settings, LogOut, Menu, X, RefreshCw, CheckCircle2, User, Shield, Palette, Database } from "lucide-react"
 import { useDashboardStore, type DateRange } from "@/app/store/dashboardStore"
 import { APIStatusWidget } from "./APIStatusWidget"
-import { toast } from "react-hot-toast"
 
 export interface HeaderProps {
   onMenuToggle?: (open: boolean) => void
@@ -16,12 +15,30 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const { dateRange, setDateRange, isLoading } = useDashboardStore()
+  
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const settingsRef = useRef<HTMLDivElement>(null)
 
   const handleMenuToggle = () => {
     const newState = !isMenuOpen
     setIsMenuOpen(newState)
     onMenuToggle?.(newState)
   }
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false)
+      }
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowSettings(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const notifications = [
     { id: 1, title: 'New Product Added', message: 'Hydra Boost Serum added to inventory', time: '5 min ago', unread: true },
@@ -33,46 +50,33 @@ export function Header({ onMenuToggle }: HeaderProps) {
   // Settings handlers
   const handleProfileSettings = () => {
     setShowSettings(false)
-    toast.success('Profile Settings - Coming Soon!', {
-      icon: '👤',
-      duration: 3000,
-    })
+    alert('👤 Profile Settings - Coming Soon!')
   }
 
   const handlePrivacySecurity = () => {
     setShowSettings(false)
-    toast.success('Privacy & Security Settings - Coming Soon!', {
-      icon: '🔒',
-      duration: 3000,
-    })
+    alert('🔒 Privacy & Security Settings - Coming Soon!')
   }
 
   const handleAppearance = () => {
     setShowSettings(false)
-    toast.success('Appearance Settings - Coming Soon! (Dark/Light Theme)', {
-      icon: '🎨',
-      duration: 3000,
-    })
+    alert('🎨 Appearance Settings - Coming Soon! (Dark/Light Theme)')
   }
 
   const handleDataSources = () => {
     setShowSettings(false)
-    toast.success('Data Sources Configuration - Coming Soon!', {
-      icon: '🔌',
-      duration: 3000,
-    })
+    alert('🔌 Data Sources Configuration - Coming Soon!')
   }
 
   const handleSignOut = () => {
     setShowSettings(false)
-    toast.success('Signing out...', {
-      icon: '👋',
-      duration: 2000,
-    })
-    // In a real app, this would clear session and redirect to login
-    setTimeout(() => {
-      toast.success('Signed out successfully!')
-    }, 2000)
+    if (confirm('Are you sure you want to sign out?')) {
+      alert('👋 Signing out...')
+      // In a real app, this would clear session and redirect to login
+      setTimeout(() => {
+        alert('Signed out successfully!')
+      }, 1000)
+    }
   }
 
   return (
@@ -122,7 +126,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <APIStatusWidget />
 
           {/* Notification Icon */}
-          <div className="relative">
+          <div className="relative" ref={notificationsRef}>
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -174,7 +178,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           </div>
 
           {/* Settings */}
-          <div className="relative">
+          <div className="relative" ref={settingsRef}>
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}

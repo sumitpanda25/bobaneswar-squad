@@ -2,9 +2,21 @@
 
 import { BarChart, ScatterChart, PieChart, Bar, Scatter, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts"
 import { motion } from "framer-motion"
-import { competitorPricingData, marketShareData, competitiveThreatMatrix } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
+import { useMemo } from "react"
 
 export function CompetitorPricingChart() {
+  const competitors = useDashboardStore((state) => state.competitors)
+  
+  // Transform competitors data for pricing chart
+  const competitorPricingData = useMemo(() => {
+    return competitors.map(c => ({
+      competitor: c.name,
+      price: c.avgPrice,
+      rating: c.rating
+    }))
+  }, [competitors])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -27,6 +39,17 @@ export function CompetitorPricingChart() {
 }
 
 export function PriceVsRatingScatter() {
+  const competitors = useDashboardStore((state) => state.competitors)
+  
+  // Transform competitors data for scatter plot
+  const competitorPricingData = useMemo(() => {
+    return competitors.map(c => ({
+      competitor: c.name,
+      price: c.avgPrice,
+      rating: c.rating
+    }))
+  }, [competitors])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -49,6 +72,18 @@ export function PriceVsRatingScatter() {
 }
 
 export function MarketSharePie() {
+  const competitors = useDashboardStore((state) => state.competitors)
+  
+  // Calculate market share data from competitors
+  const marketShareData = useMemo(() => {
+    const chartColors = ["#3b82f6", "#ef4444", "#f59e0b", "#10b981", "#8b5cf6", "#06b6d4", "#ec4899"]
+    return competitors.map((c, index) => ({
+      name: c.name,
+      value: c.marketShare,
+      fill: chartColors[index % chartColors.length]
+    }))
+  }, [competitors])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -81,6 +116,48 @@ export function MarketSharePie() {
 }
 
 export function CompetitiveThreatMatrix() {
+  const competitors = useDashboardStore((state) => state.competitors)
+  const products = useDashboardStore((state) => state.products)
+  
+  // Generate threat matrix from competitors and products by category
+  const competitiveThreatMatrix = useMemo(() => {
+    const categoryMap = new Map<string, { ourRating: number, competition: number, count: number }>()
+    
+    // Calculate our average rating per category
+    products.forEach(p => {
+      const current = categoryMap.get(p.category) || { ourRating: 0, competition: 0, count: 0 }
+      current.ourRating += p.rating
+      current.count += 1
+      categoryMap.set(p.category, current)
+    })
+    
+    // Calculate competitor average rating per category
+    competitors.forEach(c => {
+      const current = categoryMap.get(c.name) || { ourRating: 0, competition: 0, count: 0 }
+      current.competition += c.rating
+      categoryMap.set(c.name, current)
+    })
+    
+    // Generate threat levels
+    return Array.from(categoryMap.entries()).map(([category, data]) => {
+      const ourAvg = data.count > 0 ? data.ourRating / data.count : 4.5
+      const compAvg = data.competition || 4.0
+      const diff = compAvg - ourAvg
+      
+      let threat = "Low"
+      if (diff > 0.5) threat = "High"
+      else if (diff > 0.2) threat = "Medium"
+      else if (diff < -0.3) threat = "Very Low"
+      
+      return {
+        category,
+        ourRating: ourAvg.toFixed(1),
+        competition: compAvg.toFixed(1),
+        threat
+      }
+    })
+  }, [competitors, products])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}

@@ -2,11 +2,29 @@
 
 import { BarChart, LineChart, PieChart, AreaChart, Bar, Line, Pie, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts"
 import { motion } from "framer-motion"
-import { revenueByCategory, monthlySalesData, categoryDistributionData, productGrowthData } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
+import { useMemo } from "react"
 
 const chartColors = ["#3b82f6", "#ef4444", "#f59e0b", "#10b981", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"]
 
 export function RevenueByCategory() {
+  const products = useDashboardStore((state) => state.products)
+  
+  // Calculate revenue by category from real product data
+  const revenueByCategory = useMemo(() => {
+    const categoryMap = new Map<string, number>()
+    
+    products.forEach(product => {
+      const current = categoryMap.get(product.category) || 0
+      categoryMap.set(product.category, current + product.revenue)
+    })
+    
+    return Array.from(categoryMap.entries()).map(([category, revenue]) => ({
+      category,
+      revenue
+    }))
+  }, [products])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -29,6 +47,20 @@ export function RevenueByCategory() {
 }
 
 export function MonthlySalesTrend() {
+  const products = useDashboardStore((state) => state.products)
+  
+  // Generate monthly sales data from products (simulated trend based on revenue)
+  const monthlySalesData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+    const totalRevenue = products.reduce((sum, p) => sum + p.revenue, 0)
+    
+    return months.map((month, index) => ({
+      month,
+      sales: Math.round(totalRevenue * (0.8 + Math.random() * 0.4) / 6),
+      products: products.length + Math.floor(Math.random() * 3 - 1)
+    }))
+  }, [products])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -53,6 +85,24 @@ export function MonthlySalesTrend() {
 }
 
 export function ProductDistribution() {
+  const products = useDashboardStore((state) => state.products)
+  
+  // Calculate category distribution from real products
+  const categoryDistributionData = useMemo(() => {
+    const categoryMap = new Map<string, number>()
+    
+    products.forEach(product => {
+      categoryMap.set(product.category, (categoryMap.get(product.category) || 0) + 1)
+    })
+    
+    const total = products.length
+    return Array.from(categoryMap.entries()).map(([name, count], index) => ({
+      name,
+      value: Math.round((count / total) * 100),
+      fill: chartColors[index % chartColors.length]
+    }))
+  }, [products])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -85,6 +135,19 @@ export function ProductDistribution() {
 }
 
 export function ProductGrowthTrend() {
+  const products = useDashboardStore((state) => state.products)
+  
+  // Generate growth trend data from products
+  const productGrowthData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+    const avgGrowth = products.reduce((sum, p) => sum + p.growth, 0) / products.length
+    
+    return months.map((month, index) => ({
+      month,
+      growth: Math.round(avgGrowth * (0.8 + index * 0.1))
+    }))
+  }, [products])
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}

@@ -74,10 +74,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   drillDownOpen: false,
   drillDownData: null,
   apiStatus: {
-    products: 'connected',
-    competitors: 'connected',
-    chatbot: 'active',
-    lastSync: new Date(),
+    products: 'disconnected',
+    competitors: 'disconnected',
+    chatbot: 'loading',
+    lastSync: null,
   },
 
   // Actions
@@ -138,6 +138,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         ])
         
         // Transform API responses to dashboard format
+        console.log('[Dashboard Store] Products Response:', productsResponse);
+        console.log('[Dashboard Store] Competitors Response:', competitorsResponse);
+        
         const products = productsResponse
           ? transformProductsData(productsResponse)
           : (ENABLE_MOCK_DATA ? productData : [])
@@ -145,6 +148,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const competitors = competitorsResponse
           ? transformCompetitorsData(competitorsResponse)
           : (ENABLE_MOCK_DATA ? competitorData : [])
+        
+        console.log('[Dashboard Store] Transformed Products:', products);
+        console.log('[Dashboard Store] Transformed Competitors:', competitors);
+        console.log('[Dashboard Store] Products count:', products.length);
+        console.log('[Dashboard Store] Competitors count:', competitors.length);
         
         set({
           products,

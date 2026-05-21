@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/app/utils/cn"
 import { chatbotService, type ChatMessage } from "@/app/services/chatbot/chatbot-service"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 
 const samplePrompts = [
   "Which products are overpriced?",
@@ -20,7 +21,7 @@ export function AIAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
-      text: "Hello! I'm your PulseIQ AI Assistant powered by IBM ICA Agentic Runtime. I can help you analyze product data, understand market trends, and get actionable insights. What would you like to know?",
+      text: "Hello! I'm your PulseIQ AI Assistant powered by IBM Langflow. I have access to real-time product and competitor data. What would you like to know?",
       sender: "ai",
       timestamp: new Date(),
     },
@@ -29,6 +30,10 @@ export function AIAssistant() {
   const [isLoading, setIsLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Get real-time dashboard data
+  const products = useDashboardStore((state) => state.products)
+  const competitors = useDashboardStore((state) => state.competitors)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -65,8 +70,43 @@ export function AIAssistant() {
     setSuggestions([])
 
     try {
-      // Call real chatbot service
-      const response = await chatbotService.sendMessage(message)
+      // Build context with real-time dashboard data
+      const context = {
+        products: products.map(p => ({
+          name: p.name,
+          price: p.price,
+          rating: p.rating,
+          revenue: p.revenue,
+          growth: p.growth,
+          category: p.category
+        })),
+        competitors: competitors.map(c => ({
+          name: c.name,
+          avgPrice: c.avgPrice,
+          rating: c.rating,
+          marketShare: c.marketShare
+        })),
+        totalProducts: products.length,
+        totalCompetitors: competitors.length,
+        totalRevenue: products.reduce((sum, p) => sum + p.revenue, 0),
+        avgRating: products.length > 0 ? (products.reduce((sum, p) => sum + p.rating, 0) / products.length).toFixed(1) : '0'
+      }
+      
+      // Enrich message with context for Langflow
+      const enrichedMessage = `${message}
+
+Context Data:
+- Total Products: ${context.totalProducts}
+- Total Revenue: $${(context.totalRevenue / 1000).toFixed(0)}K
+- Average Rating: ${context.avgRating}⭐
+- Competitors: ${context.totalCompetitors}
+
+Products: ${context.products.map(p => `${p.name} ($${p.price}, ${p.rating}⭐, ${p.growth > 0 ? '+' : ''}${p.growth}%)`).join(', ')}
+
+Competitors: ${context.competitors.map(c => `${c.name} ($${c.avgPrice}, ${c.rating}⭐, ${c.marketShare}% share)`).join(', ')}`
+      
+      // Call real chatbot service with enriched message
+      const response = await chatbotService.sendMessage(enrichedMessage, context)
 
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),

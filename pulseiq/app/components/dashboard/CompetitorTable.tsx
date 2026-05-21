@@ -1,12 +1,15 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { competitorData } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 import { formatCurrency } from "@/app/utils/formatters"
 import { cn } from "@/app/utils/cn"
 import { TrendingUp } from "lucide-react"
 
 export function CompetitorTable() {
+  // Get competitors from dashboard store instead of mock data
+  const competitors = useDashboardStore((state) => state.competitors)
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -26,7 +29,7 @@ export function CompetitorTable() {
             </tr>
           </thead>
           <tbody>
-            {competitorData.map((competitor, index) => (
+            {competitors.map((competitor, index) => (
               <motion.tr
                 key={competitor.id}
                 initial={{ opacity: 0 }}

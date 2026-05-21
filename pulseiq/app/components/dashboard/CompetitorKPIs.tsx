@@ -1,16 +1,25 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { competitorData } from "@/app/data/mockData"
+import { useDashboardStore } from "@/app/store/dashboardStore"
 import { formatCurrency } from "@/app/utils/formatters"
 import { Users, TrendingUp, DollarSign, Activity } from "lucide-react"
 import { KPICard } from "./KPICard"
 
 export function CompetitorKPIs() {
-  const totalCompetitors = competitorData.length
-  const avgRating = (competitorData.reduce((acc, c) => acc + c.rating, 0) / totalCompetitors).toFixed(1)
-  const lowestPrice = Math.min(...competitorData.map((c) => c.avgPrice))
-  const totalMarketShare = competitorData.reduce((acc, c) => acc + c.marketShare, 0)
+  // Get competitors from dashboard store instead of mock data
+  const competitors = useDashboardStore((state) => state.competitors)
+  
+  const totalCompetitors = competitors.length
+  const avgRating = competitors.length > 0
+    ? (competitors.reduce((acc, c) => acc + c.rating, 0) / totalCompetitors).toFixed(1)
+    : "0.0"
+  const lowestPrice = competitors.length > 0
+    ? Math.min(...competitors.map((c) => c.avgPrice))
+    : 0
+  const totalMarketShare = competitors.length > 0
+    ? competitors.reduce((acc, c) => acc + c.marketShare, 0)
+    : 0
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
